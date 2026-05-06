@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useSoc } from "@/mock/store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -69,8 +69,8 @@ export default function Logs() {
               {filtered.map((l) => {
                 const open = openRow === l.id;
                 return (
-                  <>
-                    <TableRow key={l.id} onClick={() => setOpenRow(open ? null : l.id)} className="cursor-pointer">
+                  <Fragment key={l.id}>
+                    <TableRow onClick={() => setOpenRow(open ? null : l.id)} className="cursor-pointer">
                       <TableCell>{open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}</TableCell>
                       <TableCell className="font-mono text-xs">{format(new Date(l.ts), "HH:mm:ss")}</TableCell>
                       <TableCell className="text-xs">{l.event_type}</TableCell>
@@ -81,14 +81,14 @@ export default function Logs() {
                       <TableCell><SeverityBadge severity={l.severity} /></TableCell>
                     </TableRow>
                     {open && (
-                      <TableRow key={l.id + "-d"} className="hover:bg-transparent">
+                      <TableRow className="hover:bg-transparent">
                         <TableCell></TableCell>
                         <TableCell colSpan={7} className="bg-muted/20">
                           <pre className="text-[11px] font-mono p-2 overflow-x-auto">{JSON.stringify(l, null, 2)}</pre>
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </TableBody>
