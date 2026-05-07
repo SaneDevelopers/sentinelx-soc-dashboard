@@ -112,6 +112,18 @@ class ThreatIndicatorRead(BaseModel):
     watchlisted: bool
 
 
+class ThreatIndicatorWrite(BaseModel):
+    id: str
+    indicator: str
+    type: str
+    risk_level: str
+    source: str
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
+    description: str = ""
+    watchlisted: bool = False
+
+
 class IntegrationRead(BaseModel):
     id: str
     name: str

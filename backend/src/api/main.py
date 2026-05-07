@@ -19,6 +19,8 @@ from src.database.connection import Base, engine
 from src.database import models  # noqa: F401  # ensure models are registered
 from src.database.connection import SessionLocal
 from src.database.seed import seed_reference_data
+from src.database.seed_demo import seed_demo_events
+import os
 
 settings = get_settings()
 
@@ -28,6 +30,8 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         seed_reference_data(db)
+        if os.getenv("SEED_DEMO", "1") == "1":
+            seed_demo_events(db)
     yield
 
 

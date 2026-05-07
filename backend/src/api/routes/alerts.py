@@ -71,6 +71,20 @@ def list_alerts(
     }
 
 
+@router.get("/api/alerts/{alert_id}")
+def get_alert(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if alert is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
+    alert.notes = (
+        db.query(AlertNote)
+        .filter(AlertNote.alert_id == alert.id)
+        .order_by(desc(AlertNote.created_at))
+        .all()
+    )
+    return _serialize_alert(alert)
+
+
 @router.patch("/api/alerts/{alert_id}")
 def update_alert_status(alert_id: int, payload: dict[str, str], db: Session = Depends(get_db)):
     alert = db.query(Alert).filter(Alert.id == alert_id).first()

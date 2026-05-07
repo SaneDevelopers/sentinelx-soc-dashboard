@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
@@ -57,3 +57,11 @@ def list_logs(
         "limit": limit,
         "offset": offset,
     }
+
+
+@router.get("/api/logs/{log_id}")
+def get_log(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(LogEvent).filter(LogEvent.id == log_id).first()
+    if log is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Log not found")
+    return _serialize_log(log)
