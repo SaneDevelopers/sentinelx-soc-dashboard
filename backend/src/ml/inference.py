@@ -3,9 +3,15 @@ Load and use trained Isolation Forest anomaly detector for inference.
 """
 import pickle
 from pathlib import Path
-import numpy as np
-import pandas as pd
 from typing import Optional, Dict, Any
+
+try:
+    import numpy as np  # noqa: F401
+    import pandas as pd
+    _ML_DEPS_AVAILABLE = True
+except ImportError:
+    pd = None  # type: ignore
+    _ML_DEPS_AVAILABLE = False
 
 
 class AnomalyDetector:
@@ -134,6 +140,8 @@ _detector = None
 def get_detector() -> AnomalyDetector:
     """Get or initialize the global anomaly detector."""
     global _detector
+    if not _ML_DEPS_AVAILABLE:
+        raise RuntimeError("ML deps (pandas/numpy) not installed")
     if _detector is None:
         _detector = AnomalyDetector()
     return _detector
@@ -159,6 +167,8 @@ def predict_ml_anomaly_score(event: Dict[str, Any]) -> Optional[float]:
 
 def get_model_status() -> dict[str, Any]:
     """Return model availability metadata for UI/monitoring."""
+    if not _ML_DEPS_AVAILABLE:
+        return {"online": False, "model_name": "none"}
     model_dir = Path(__file__).parent
     model_files = [
         model_dir / "isolation_forest_model.pkl",
