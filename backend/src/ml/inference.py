@@ -1,6 +1,8 @@
 """
 Load and use trained Isolation Forest anomaly detector for inference.
 """
+from __future__ import annotations
+
 import pickle
 from pathlib import Path
 from typing import Optional, Dict, Any, TYPE_CHECKING
