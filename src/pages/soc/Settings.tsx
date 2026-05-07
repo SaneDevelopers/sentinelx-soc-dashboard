@@ -11,7 +11,7 @@ import { Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Settings() {
-  const { apiKey, regenerateApiKey } = useSoc();
+  const { apiKey, regenerateApiKey, mlModelOnline } = useSoc();
   const [time, setTime] = useState("24h");
   const [dark, setDark] = useState(true);
 
@@ -52,7 +52,10 @@ export default function Settings() {
               <div className="text-xs text-muted-foreground">Send as <code>x-api-key</code> header on POST /api/public/ingest.</div>
             </div>
             <div className="border-t border-border pt-4 text-xs text-muted-foreground">
-              Detection engine: <span className="text-severity-low">healthy</span> · Models: <span className="text-severity-med">offline</span>
+              Detection engine: <span className="text-severity-low">healthy</span> · Models:{" "}
+              <span className={mlModelOnline ? "text-severity-low" : "text-severity-med"}>
+                {mlModelOnline ? "online" : "offline"}
+              </span>
             </div>
           </CardContent>
         </Card>

@@ -1,0 +1,419 @@
+Workflow to be implemented
+External Source
+↓
+POST /api/public/ingest
+↓
+Validate API key
+↓
+Store raw log in LogEvent
+↓
+Feature extraction
+↓
+ML anomaly scoring
+↓
+Alert generation
+↓
+Frontend fetches alerts/logs
+What should be built next
+You are missing the actual ingest route.
+Right now main.py only has:
+/
+health
+/stats
+You need:
+/api/public/ingest
+Recommended implementation structure
+You should create:
+src/
+├── api/
+│ ├── main.py
+│ └── routes/
+│ └── ingest.py
+│
+├── services/
+│ ├── ingest_service.py
+│ ├── detection_service.py
+│ └── alert_service.py
+Recommended ingest workflow
+STEP 1 — Receive event
+Frontend/external systems send:
+{
+"timestamp": "2026-05-06T19:20:00",
+"user": "alice",
+"ip": "185.220.101.4",
+"host": "web-prod-01",
+"event_type": "auth_failure",
+"status": "fail",
+"source": "okta"
+}
+Validate API key
+Your Settings page already suggests this:
+x-api-key: snx_...
+So your backend should:
+if api_key != settings.INGEST_API_KEY:
+raise HTTPException(status_code=401)
+Store raw event
+Insert into:
+LogEvent
+You already have this SQLAlchemy model implemented.
+This is your raw telemetry storage.
+Feature extraction
+This converts logs into ML-friendly patterns.
+Examples:
+failed logins in 5 mins
+unique IP count
+off-hours activity
+burst traffic
+Store into:
+Feature
+ML scoring
+Your backend already has:
+Isolation Forest
+Autoencoder
+Those models should produce:
+anomaly score
+risk score
+severity
+Store into:
+AnomalyScore
+Generate alerts
+If:
+risk_score > threshold
+create:
+Alert
+This powers:
+• Alerts page
+• Dashboard stats
+• Anomalies page
+Frontend fetches data
+Frontend should call:
+GET /api/alerts
+GET /api/logs
+GET /api/anomalies
+GET /api/stats
+Instead of hardcoded mock arrays.
+Keep this architecture:
+Raw logs
+↓
+Feature extraction
+↓
+ML scoring
+↓
+Alert generation
+↓
+Dashboard visualization
+This matches enterprise SIEM design.
+What NOT to do
+Don’t:
+• put all logic in one file
+• directly trigger alerts from frontend
+• skip raw log storage
+• mix ML logic into route handlers
+Keep:
+• routes
+• services
+• DB
+• ML
+Separate
+Best next implementation order
+1. Build ingest route
+First priority.
+2. Save logs to DB
+So frontend can display real data.
+3. Create GET endpoints
+For alerts/logs/anomalies.
+4. Replace mock frontend data
+With API fetches.
+5. Add ML processing
+After pipeline works.
+SentinelX SIEM — Real Ingest Pipeline
+Implementation Guide
+This guide explains how to turn your current frontend + backend into a working SIEM pipeline that:
+• accepts real logs
+• stores them in database
+• generates alerts
+• performs anomaly scoring
+• updates dashboard dynamically
+1. Final Architecture
+External Sources
+(Firewalls / Scripts / Agents)
+↓
+POST /api/public/ingest
+↓
+Validate API key
+↓
+Store raw logs in database
+↓
+Feature extraction
+↓
+ML anomaly scoring
+↓
+Alert generation
+↓
+Frontend fetches live data
+2. Backend Structure
+Recommended backend structure:
+src/
+├── api/
+│ ├── main.py
+│ └── routes/
+│ ├── ingest.py
+│ ├── alerts.py
+│ ├── logs.py
+│ ├── anomalies.py
+│ └── dashboard.py
+│
+├── database/
+│ ├── connection.py
+│ └── models.py
+│
+├── schemas/
+│ ├── ingest.py
+│ └── responses.py
+│
+├── services/
+│ ├── ingest_service.py
+│ ├── detection_service.py
+│ ├── anomaly_service.py
+│ └── alert_service.py
+│
+├── ml/
+│ ├── isolation_forest.py
+│ └── autoencoder.py
+│
+└── config.py
+3. Database Models
+Your backend already contains models.
+Ensure these exist.
+LogEvent
+class LogEvent(Base):
+__tablename__ = "log_events"
+id = Column(Integer, primary_key=True)
+timestamp = Column(DateTime)
+source_ip = Column(String)
+destination_ip = Column(String)
+event_type = Column(String)
+severity = Column(String)
+username = Column(String)
+status = Column(String)
+raw_data = Column(JSON)
+Alert
+class Alert(Base):
+__tablename__ = "alerts"
+id = Column(Integer, primary_key=True)
+title = Column(String)
+severity = Column(String)
+status = Column(String)
+source_ip = Column(String)
+created_at = Column(DateTime)
+AnomalyScore
+class AnomalyScore(Base):
+__tablename__ = "anomaly_scores"
+id = Column(Integer, primary_key=True)
+event_id = Column(Integer)
+score = Column(Float)
+model_name = Column(String)
+reason = Column(String)
+4. Create Request Schema
+Create:
+src/schemas/ingest.py
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+class IngestEvent(BaseModel):
+timestamp: datetime
+source_ip: str
+destination_ip: Optional[str] = None
+event_type: str
+severity: str
+username: Optional[str] = None
+status: Optional[str] = None
+protocol: Optional[str] = None
+5. Create Ingest Route
+Create:
+src/api/routes/ingest.py
+from fastapi import APIRouter, Header, HTTPException, Depends
+from sqlalchemy.orm import Session
+from src.schemas.ingest import IngestEvent
+from src.database.connection import get_db
+from src.services.ingest_service import process_event
+router = APIRouter()
+INGEST_API_KEY = "snx_demo_key"
+@router.post("/api/public/ingest")
+def ingest_event(
+event: IngestEvent,
+x_api_key: str = Header(...),
+db: Session = Depends(get_db)
+):
+if x_api_key != INGEST_API_KEY:
+raise HTTPException(status_code=401, detail="Invalid API key")
+result = process_event(db, event)
+return {
+"success": True,
+"event_id": result.id
+}
+6. Register Route in main.py
+Inside:
+src/api/main.py
+Add:
+from src.api.routes.ingest import router as ingest_router
+app.include_router(ingest_router)
+7. Create Ingest Service
+Create:
+src/services/ingest_service.py
+from src.database.models import LogEvent
+from src.services.detection_service import run_detection
+def process_event(db, event):
+log = LogEvent(
+timestamp=event.timestamp,
+source_ip=event.source_ip,
+destination_ip=event.destination_ip,
+event_type=event.event_type,
+severity=event.severity,
+username=event.username,
+status=event.status,
+raw_data=event.dict()
+)
+db.add(log)
+db.commit()
+db.refresh(log)
+run_detection(db, log)
+return log
+8. Detection Service
+Create:
+src/services/detection_service.py
+from src.database.models import Alert
+def run_detection(db, log):
+if log.event_type == "auth_failure":
+alert = Alert(
+title=f"Authentication failure from {log.source_ip}",
+severity="high",
+status="open",
+source_ip=log.source_ip
+)
+db.add(alert)
+db.commit()
+9. Create GET Endpoints
+Logs Endpoint
+@router.get("/api/logs")
+def get_logs(db: Session = Depends(get_db)):
+return db.query(LogEvent).all()
+Alerts Endpoint
+@router.get("/api/alerts")
+def get_alerts(db: Session = Depends(get_db)):
+return db.query(Alert).all()
+10. Frontend Integration
+Currently your frontend uses mock data.
+Replace static arrays with API calls.
+Example:
+const response = await fetch("http://localhost:8000/api/alerts")
+const alerts = await response.json()
+Use inside:
+useEffect(() => {
+loadAlerts()
+}, [])
+11. Enable Auto Refresh
+To make dashboard live:
+useEffect(() => {
+loadAlerts()
+const interval = setInterval(loadAlerts, 5000)
+return () => clearInterval(interval)
+}, [])
+This refreshes data every 5 seconds.
+12. Test the Ingest API
+Run backend:
+uvicorn src.api.main:app --reload
+Run frontend:
+npm run dev
+Send test event:
+curl -X POST http://localhost:8000/api/public/ingest \
+-H "Content-Type: application/json" \
+-H "x-api-key: snx_demo_key" \
+-d '{
+"timestamp": "2026-05-06T19:00:00",
+"source_ip": "185.220.101.4",
+"destination_ip": "10.0.1.21",
+"event_type": "auth_failure",
+"severity": "high",
+"username": "alice",
+"status": "blocked"
+}'
+13. Expected Result
+After sending the event:
+• new log appears in Logs page
+• alert appears in Alerts page
+• dashboard counters increase
+• anomaly table updates
+• charts reflect latest events
+14. Real Log Sources You Can Connect
+Python Script
+import requests
+requests.post(
+"http://localhost:8000/api/public/ingest",
+headers={
+"x-api-key": "snx_demo_key"
+},
+json={
+"timestamp": "2026-05-06T19:00:00",
+"source_ip": "1.2.3.4",
+"event_type": "port_scan",
+"severity": "high"
+}
+)
+Syslog Adapter
+You can later build:
+UDP Syslog Listener
+↓
+Parse Logs
+↓
+Send to ingest endpoint
+15. ML Integration Workflow
+Your backend already contains ML modules.
+Use this flow:
+Incoming Event
+↓
+Feature Extraction
+↓
+Isolation Forest
+↓
+Anomaly Score
+↓
+Store in anomaly_scores table
+↓
+Generate alert if threshold exceeded
+16. Production Improvements
+After pipeline works:
+Add:
+• PostgreSQL
+• Redis queue
+• Celery workers
+• WebSockets
+• JWT auth
+• Role-based access
+• Kafka streaming
+• Real syslog ingestion
+• Background ML workers
+17. Recommended Development Order
+Phase 1
+• ingest endpoint
+• DB storage
+• GET endpoints
+• frontend fetches
+Phase 2
+• alert rules
+• anomaly scoring
+• dashboard metrics
+Phase 3
+• ML models
+• streaming
+• live updates
+• integrations
+18. Most Important Rule
+Keep these layers separate:
+Routes
+Services
+Database
+ML
+Frontend
+Do NOT put everything in one file.
+This is what makes the project scalable and maintainable.

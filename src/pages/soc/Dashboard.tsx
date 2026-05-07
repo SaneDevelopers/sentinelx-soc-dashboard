@@ -26,7 +26,7 @@ function Kpi({ icon: Icon, label, value, sub, tone = "muted" }: { icon: any; lab
 }
 
 export default function Dashboard() {
-  const { alerts, anomalies, logs, eventActivity } = useSoc();
+  const { alerts, anomalies, logs, eventActivity, mlModelOnline, syncStatus, lastSyncAt, syncError } = useSoc();
   const open = alerts.filter((a) => a.status !== "resolved").length;
   const last24h = logs.length;
   const topAnoms = [...anomalies].sort((a, b) => b.score - a.score).slice(0, 5);
@@ -37,13 +37,37 @@ export default function Dashboard() {
       <PageHeader
         title="Security Operations Center"
         description="Live posture, detections, and anomalies across your environment."
-        actions={<Badge variant="outline" className="gap-1.5 border-severity-low/40 text-severity-low"><StatusDot tone="good" /> All systems operational</Badge>}
+        actions={
+          <Badge
+            variant="outline"
+            className={`gap-1.5 ${
+              syncStatus === "live"
+                ? "border-severity-low/40 text-severity-low"
+                : syncStatus === "error"
+                  ? "border-severity-crit/40 text-severity-crit"
+                  : "border-severity-med/40 text-severity-med"
+            }`}
+          >
+            <StatusDot tone={syncStatus === "live" ? "good" : syncStatus === "error" ? "bad" : "warn"} />
+            {syncStatus === "live"
+              ? `Live sync${lastSyncAt ? ` • ${formatDistanceToNow(new Date(lastSyncAt), { addSuffix: true })}` : ""}`
+              : syncStatus === "error"
+                ? `Sync error${syncError ? ": " + syncError : ""}`
+                : "Syncing..."}
+          </Badge>
+        }
       />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Kpi icon={ShieldCheck} label="System status" value="Operational" sub="Engine healthy" tone="good" />
         <Kpi icon={Activity} label="Events / 24h" value={last24h.toLocaleString()} sub="+12% vs prev day" tone="good" />
         <Kpi icon={AlertTriangle} label="Active alerts" value={String(open)} sub={`${alerts.filter(a=>a.severity==='critical').length} critical`} tone="bad" />
-        <Kpi icon={Cpu} label="ML model" value="Offline" sub="Training disabled" tone="warn" />
+        <Kpi
+          icon={Cpu}
+          label="ML model"
+          value={mlModelOnline ? "Online" : "Offline"}
+          sub={mlModelOnline ? "Inference active" : "No ML-scored anomalies yet"}
+          tone={mlModelOnline ? "good" : "warn"}
+        />
       </div>
 
       <div className="grid gap-4 mt-6 lg:grid-cols-3">
