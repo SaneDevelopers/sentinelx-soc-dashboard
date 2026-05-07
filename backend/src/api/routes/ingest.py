@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.config import get_settings
+from src.security import get_ingest_api_key
 from src.database.connection import get_db
 from src.schemas.ingest import IngestEvent, IngestResponse
 from src.services.ingest_service import process_event
@@ -16,7 +17,7 @@ def ingest_event(
     x_api_key: str = Header(..., alias="x-api-key"),
     db: Session = Depends(get_db),
 ) -> IngestResponse:
-    if x_api_key != settings.ingest_api_key:
+    if x_api_key != get_ingest_api_key():
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
 
     result = process_event(db, event)

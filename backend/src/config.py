@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     ingest_api_key: str = Field(default="snx_demo_key", alias="INGEST_API_KEY")
     alert_score_threshold: float = Field(default=0.7, alias="ALERT_SCORE_THRESHOLD")
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
+    jwt_secret: str = Field(default="change-me-in-prod-please-32+chars", alias="JWT_SECRET")
+    jwt_ttl_hours: int = Field(default=24, alias="JWT_TTL_HOURS")
 
     @property
     def allowed_origins(self) -> list[str]:
