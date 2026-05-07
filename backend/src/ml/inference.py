@@ -3,15 +3,18 @@ Load and use trained Isolation Forest anomaly detector for inference.
 """
 import pickle
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 
 try:
     import numpy as np  # noqa: F401
     import pandas as pd
     _ML_DEPS_AVAILABLE = True
 except ImportError:
-    pd = None  # type: ignore
     _ML_DEPS_AVAILABLE = False
+    if not TYPE_CHECKING:
+        class _PdStub:
+            DataFrame = object
+        pd = _PdStub()  # type: ignore
 
 
 class AnomalyDetector:
