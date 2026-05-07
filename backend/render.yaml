@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: sentinelx-api
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: INGEST_API_KEY
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALERT_SCORE_THRESHOLD
+        value: "0.7"
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: SEED_DEMO
+        value: "1"
