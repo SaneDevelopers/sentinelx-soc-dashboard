@@ -1,11 +1,22 @@
 """
 Load and use trained Isolation Forest anomaly detector for inference.
 """
+from __future__ import annotations
+
 import pickle
 from pathlib import Path
-import numpy as np
-import pandas as pd
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
+
+try:
+    import numpy as np  # noqa: F401
+    import pandas as pd
+    _ML_DEPS_AVAILABLE = True
+except ImportError:
+    _ML_DEPS_AVAILABLE = False
+    if not TYPE_CHECKING:
+        class _PdStub:
+            DataFrame = object
+        pd = _PdStub()  # type: ignore
 
 
 class AnomalyDetector:
@@ -134,9 +145,14 @@ _detector = None
 def get_detector() -> AnomalyDetector:
     """Get or initialize the global anomaly detector."""
     global _detector
+    if not _ML_DEPS_AVAILABLE:
+        raise RuntimeError("ML deps (pandas/numpy) not installed")
     if _detector is None:
         _detector = AnomalyDetector()
     return _detector
+
+
+_ml_warned = {"v": False}
 
 
 def predict_ml_anomaly_score(event: Dict[str, Any]) -> Optional[float]:
@@ -149,16 +165,25 @@ def predict_ml_anomaly_score(event: Dict[str, Any]) -> Optional[float]:
     Returns:
         Anomaly score [0, 1] or None if inference fails
     """
+    if not _ML_DEPS_AVAILABLE:
+        if not _ml_warned["v"]:
+            print("ML deps unavailable — running heuristic-only mode")
+            _ml_warned["v"] = True
+        return None
     try:
         detector = get_detector()
         return detector.predict_anomaly_score(event)
     except Exception as e:
-        print(f"ML inference error: {e}")
+        if not _ml_warned["v"]:
+            print(f"ML inference disabled: {e}")
+            _ml_warned["v"] = True
         return None
 
 
 def get_model_status() -> dict[str, Any]:
     """Return model availability metadata for UI/monitoring."""
+    if not _ML_DEPS_AVAILABLE:
+        return {"online": False, "model_name": "none"}
     model_dir = Path(__file__).parent
     model_files = [
         model_dir / "isolation_forest_model.pkl",

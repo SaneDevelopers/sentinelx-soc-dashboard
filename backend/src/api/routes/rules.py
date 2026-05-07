@@ -67,3 +67,13 @@ def toggle_rule(rule_id: str, payload: dict[str, bool] | None = None, db: Sessio
     db.commit()
     db.refresh(rule)
     return _serialize_rule(rule)
+
+
+@router.delete("/api/rules/{rule_id}")
+def delete_rule(rule_id: str, db: Session = Depends(get_db)):
+    rule = db.query(Rule).filter(Rule.id == rule_id).first()
+    if rule is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule not found")
+    db.delete(rule)
+    db.commit()
+    return {"success": True, "id": rule_id}
