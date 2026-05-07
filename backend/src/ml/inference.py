@@ -152,6 +152,9 @@ def get_detector() -> AnomalyDetector:
     return _detector
 
 
+_ml_warned = {"v": False}
+
+
 def predict_ml_anomaly_score(event: Dict[str, Any]) -> Optional[float]:
     """
     Predict anomaly score using ML model.
@@ -162,11 +165,18 @@ def predict_ml_anomaly_score(event: Dict[str, Any]) -> Optional[float]:
     Returns:
         Anomaly score [0, 1] or None if inference fails
     """
+    if not _ML_DEPS_AVAILABLE:
+        if not _ml_warned["v"]:
+            print("ML deps unavailable — running heuristic-only mode")
+            _ml_warned["v"] = True
+        return None
     try:
         detector = get_detector()
         return detector.predict_anomaly_score(event)
     except Exception as e:
-        print(f"ML inference error: {e}")
+        if not _ml_warned["v"]:
+            print(f"ML inference disabled: {e}")
+            _ml_warned["v"] = True
         return None
 
 
