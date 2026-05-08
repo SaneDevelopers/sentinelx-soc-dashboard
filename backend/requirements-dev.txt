@@ -1,0 +1,4 @@
+# SentinelX Backend Development Dependencies
+# Testing and development tools
+
+pytest>=8,<9

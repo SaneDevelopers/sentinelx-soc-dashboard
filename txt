@@ -1,0 +1,8 @@
+backend 
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn src.api.main:app --reload 
+
+frontend 
+npm i  
+npm run dev
