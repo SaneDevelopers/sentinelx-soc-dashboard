@@ -1,15 +1,17 @@
 import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import { Bell, Search } from "lucide-react";
+import { Bell, LogOut, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useSoc } from "@/mock/store";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/auth/AuthContext";
 
 export default function SocLayout() {
   const { alerts } = useSoc();
+  const { user, logout } = useAuth();
   const open = alerts.filter((a) => a.status === "open" || a.status === "investigating").length;
   return (
     <SidebarProvider>
@@ -30,8 +32,13 @@ export default function SocLayout() {
               )}
             </Button>
             <Avatar className="h-8 w-8 ring-1 ring-border">
-              <AvatarFallback className="bg-secondary text-xs">SX</AvatarFallback>
+              <AvatarFallback className="bg-secondary text-xs">{user?.email?.[0]?.toUpperCase() ?? "SX"}</AvatarFallback>
             </Avatar>
+            {user && (
+              <Button variant="ghost" size="icon" onClick={logout} title={`Sign out ${user.email}`}>
+                <LogOut className="h-4 w-4" />
+              </Button>
+            )}
           </header>
           <main className="flex-1 p-4 md:p-6 overflow-x-hidden">
             <Outlet />
