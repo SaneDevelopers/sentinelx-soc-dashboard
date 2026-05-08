@@ -11,16 +11,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SeverityBadge } from "@/components/soc/SeverityBadge";
 import { PageHeader } from "@/components/soc/PageHeader";
-import { Plus, Play } from "lucide-react";
+import { Plus, Play, Trash2 } from "lucide-react";
 import type { Rule, Severity } from "@/types/soc";
 import { toast } from "sonner";
+import { deleteRuleApi } from "@/lib/api";
 
 function emptyRule(): Rule {
   return { id: "r" + Date.now(), name: "", description: "", severity: "medium", enabled: true, created_by: "you", condition: { all: [] } };
 }
 
 export default function Rules() {
-  const { rules, toggleRule, upsertRule } = useSoc();
+  const { rules, toggleRule, upsertRule, refreshData } = useSoc();
   const [editing, setEditing] = useState<Rule | null>(null);
   const [conditionText, setConditionText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +46,11 @@ export default function Rules() {
     const matches = Math.floor(Math.random() * 8);
     toast.success(`Test complete — ${matches} match${matches===1?'':'es'} in last 1h`);
   }
+  async function removeRule(id: string) {
+    if (!confirm("Delete this rule?")) return;
+    try { await deleteRuleApi(id); toast.success("Rule deleted"); void refreshData(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); }
+  }
 
   return (
     <>
@@ -67,6 +73,7 @@ export default function Rules() {
                   <TableCell className="text-right space-x-1">
                     <Button size="sm" variant="ghost" onClick={testRule}><Play className="h-3.5 w-3.5 mr-1" />Test</Button>
                     <Button size="sm" variant="ghost" onClick={()=>open(r)}>Edit</Button>
+                    <Button size="sm" variant="ghost" onClick={()=>removeRule(r.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </TableCell>
                 </TableRow>
               ))}

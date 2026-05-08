@@ -20,6 +20,7 @@ import {
   toggleThreatWatchlist as apiToggleThreatWatchlist,
   updateAlertStatus as apiUpdateAlertStatus,
   upsertRule as apiUpsertRule,
+  promoteAnomalyApi,
   type ApiAlert,
   type ApiAsset,
   type ApiAnomaly,
@@ -319,8 +320,16 @@ export function SocProvider({ children }: { children: ReactNode }) {
 
   const promoteAnomaly = useCallback((id: string) => {
     setAnomalies((current) => current.map((anomaly) => (anomaly.id === id ? { ...anomaly, status: "promoted" } : anomaly)));
-    toast.success("Promoted to alert");
-  }, []);
+    const numId = Number(id);
+    if (Number.isFinite(numId)) {
+        void promoteAnomalyApi(numId).then(() => {
+        toast.success("Promoted to alert");
+        void refreshData();
+      }).catch((e) => toast.error(e instanceof Error ? e.message : "Failed to promote"));
+      } else {
+      toast.success("Promoted to alert");
+      }
+  }, [refreshData]);
 
   const toggleWatchlist = useCallback((id: string) => {
     const previous = threatsState;
