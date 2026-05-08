@@ -1,6 +1,6 @@
 backend 
 cd backend
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate
 python -m uvicorn src.api.main:app --reload 
 
 frontend 
