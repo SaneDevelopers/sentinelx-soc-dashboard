@@ -41,3 +41,4 @@ src/services/ingest_queue.py
 src/services/ingest_service.py
 src/services/rule_engine.py
 tests/test_ingest.py
+tests/test_rule_engine.py
