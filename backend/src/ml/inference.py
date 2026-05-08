@@ -45,7 +45,7 @@ class AnomalyDetector:
                 self.encoders = pickle.load(f)
             with open(self.features_path, 'rb') as f:
                 self.feature_names = pickle.load(f)
-            print("✓ Anomaly detector loaded successfully")
+            print("[OK] Anomaly detector loaded successfully")
         except FileNotFoundError as e:
             raise RuntimeError(
                 f"ML model not found. Run: python -m src.ml.train_anomaly_detector\n{e}"
